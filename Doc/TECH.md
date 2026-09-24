@@ -361,3 +361,5 @@ SSE_Backend/
 ---
 
 *文件版本 Document version：與 2026-09-24 SSE reconnect / LPRS 面板實作對齊。*
+
+機制圖（Leon 已審 v2）：[Doc/mechanism/](mechanism/README.md)。
