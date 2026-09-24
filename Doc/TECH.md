@@ -22,7 +22,6 @@
 |---|---|---|
 | Backend | `Backend/Web_dPanel_Backend/` | .NET 8 Minimal API, `MessageHub`, HttpClient → LPRS |
 | Frontend | `Frontend/` | React 19, Vite 8, EventSource |
-| Docs | `Doc/` · `Doc/mechanism/` | TECH.md + 機制圖 mechanism diagrams |
 
 **主流程 Primary flow**
 
@@ -40,18 +39,11 @@ Legacy `/api/message` remains; prefer `/api/vehicle` for the new panel.
 
 ---
 
-## 1.1 機制圖 / Mechanism diagrams（架構專家）
 
 詳細機制圖（架構、Happy Path 時序、SSE 重連／Watchdog、失敗路徑）見：
 
 | 檔案 File | 說明 |
 |-----------|------|
-| [Doc/mechanism/README.md](mechanism/README.md) | 圖例說明與開啟方式 |
-| [architecture](mechanism/architecture.html) · [svg](mechanism/architecture.svg) · [png](mechanism/architecture.png) | 系統架構：REST vs SSE、clientKey、MessageHub |
-| [sequence-happy](mechanism/sequence-happy.html) · [svg](mechanism/sequence-happy.svg) · [png](mechanism/sequence-happy.png) | Happy Path：車輛推送 + 清屏 |
-| [reconnect](mechanism/reconnect.html) · [svg](mechanism/reconnect.svg) · [png](mechanism/reconnect.png) | Ping / Watchdog / 退避重連 / Visibility |
-| [failure-paths](mechanism/failure-paths.html) · [svg](mechanism/failure-paths.svg) · [png](mechanism/failure-paths.png) | LPRS 失敗、Timeout、SSE Closed（無假資料） |
-| [summary.md](mechanism/summary.md) | 程式驗證 vs 設計摘要 |
 
 建議用瀏覽器開啟對應 `.html`。  
 Open the `.html` files in a browser for best viewing.

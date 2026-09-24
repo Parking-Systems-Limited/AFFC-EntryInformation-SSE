@@ -11,7 +11,6 @@ AFFC entrance information panel over SSE: Backend pushes vehicle/LPRS data; Fron
 | [Backend/](Backend/) | ASP.NET Core 8 SSE + LPRS API（`Web_dPanel_Backend`） |
 | [Frontend/](Frontend/) | React + Vite 入閘面板 UI |
 | [Doc/TECH.md](Doc/TECH.md) | **技術文件（繁中 + English）** — 架構、端點、SSE、LPRS、clientKey、ping/重連、Postman、設定與執行 |
-| [Doc/mechanism/](Doc/mechanism/) | **機制圖（架構專家）** — architecture / sequence / reconnect / failure-paths（svg·html·png） |
 
 ## 快速開始 Quick start
 
