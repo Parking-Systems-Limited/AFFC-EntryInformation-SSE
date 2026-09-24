@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 920" width="1280" height="920" role="img" aria-label="Happy path sequence vehicle + clear">
+  <defs>
+    <style>
+      .title { font: 700 24px "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif; fill: #0f172a; }
+      .sub { font: 500 13px "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif; fill: #475569; }
+      .actor { font: 700 13px "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif; fill: #0f172a; }
+      .msg { font: 500 12px "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif; fill: #1e293b; }
+      .mono { font: 600 11px ui-monospace, Consolas, monospace; fill: #0f172a; }
+      .note { font: 500 11px "Segoe UI", "Noto Sans TC", sans-serif; fill: #475569; }
+      .lifeline { stroke: #94a3b8; stroke-width: 1.5; stroke-dasharray: 4 4; }
+      .call { stroke: #2563eb; stroke-width: 2; fill: none; marker-end: url(#mBlue); }
+      .ret { stroke: #64748b; stroke-width: 1.6; fill: none; stroke-dasharray: 5 3; marker-end: url(#mGray); }
+      .sse { stroke: #059669; stroke-width: 2; fill: none; marker-end: url(#mGreen); }
+      .hub { stroke: #7c3aed; stroke-width: 2; fill: none; marker-end: url(#mPurp); }
+    </style>
+    <marker id="mBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#2563eb"/></marker>
+    <marker id="mGray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#64748b"/></marker>
+    <marker id="mGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#059669"/></marker>
+    <marker id="mPurp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#7c3aed"/></marker>
+  </defs>
+
+  <rect width="1280" height="920" fill="#f8fafc"/>
+  <rect x="20" y="20" width="1240" height="880" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+
+  <text x="44" y="56" class="title">Happy Path — 車輛推送 + 清屏</text>
+  <text x="44" y="78" class="sub">POST /api/vehicle → LPRS → MessageHub → SSE event: vehicle　｜　POST /api/clear/{clientKey} → event: clear</text>
+
+  <!-- Actors -->
+  <!-- x positions: Postman=120, Backend=360, MessageHub=600, LPRS=840, Frontend=1080 -->
+  <g>
+    <rect x="50" y="100" width="140" height="44" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+    <text x="120" y="127" text-anchor="middle" class="actor">Postman</text>
+
+    <rect x="290" y="100" width="140" height="44" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="2"/>
+    <text x="360" y="120" text-anchor="middle" class="actor">Backend</text>
+    <text x="360" y="136" text-anchor="middle" class="note">.NET Minimal API</text>
+
+    <rect x="530" y="100" width="140" height="44" rx="8" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+    <text x="600" y="120" text-anchor="middle" class="actor">MessageHub</text>
+    <text x="600" y="136" text-anchor="middle" class="note">in-memory</text>
+
+    <rect x="770" y="100" width="140" height="44" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+    <text x="840" y="120" text-anchor="middle" class="actor">LPRS</text>
+    <text x="840" y="136" text-anchor="middle" class="note">:8012</text>
+
+    <rect x="1010" y="100" width="140" height="44" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+    <text x="1080" y="120" text-anchor="middle" class="actor">Frontend</text>
+    <text x="1080" y="136" text-anchor="middle" class="note">EventSource</text>
+  </g>
+
+  <!-- Lifelines -->
+  <line x1="120" y1="144" x2="120" y2="860" class="lifeline"/>
+  <line x1="360" y1="144" x2="360" y2="860" class="lifeline"/>
+  <line x1="600" y1="144" x2="600" y2="860" class="lifeline"/>
+  <line x1="840" y1="144" x2="840" y2="860" class="lifeline"/>
+  <line x1="1080" y1="144" x2="1080" y2="860" class="lifeline"/>
+
+  <!-- Phase 0: SSE already connected -->
+  <rect x="40" y="168" width="1200" height="28" rx="4" fill="#ecfdf5"/>
+  <text x="52" y="187" class="note">前置：Frontend 已建立 SSE（GET /sse/EN21）並 Subscribe(MessageHub)</text>
+
+  <path d="M1080 210 H360" class="sse"/>
+  <text x="720" y="204" text-anchor="middle" class="msg">① GET /sse/EN21  （長連線已開啟）</text>
+
+  <path d="M360 240 H600" class="hub"/>
+  <text x="480" y="234" text-anchor="middle" class="msg">② Subscribe(EN21) + Replay latest</text>
+
+  <!-- Phase A: vehicle -->
+  <rect x="40" y="262" width="1200" height="28" rx="4" fill="#eff6ff"/>
+  <text x="52" y="281" class="note">A. 車輛推送 Happy Path</text>
+
+  <path d="M120 310 H360" class="call"/>
+  <text x="240" y="304" text-anchor="middle" class="msg">③ POST /api/vehicle  {"clientKey":"EN21","lpn":"RH01"}</text>
+
+  <path d="M360 350 H840" class="call"/>
+  <text x="600" y="344" text-anchor="middle" class="msg">④ GET /api/LprsEvents/Vehicle/RH01  + header x-api-key</text>
+
+  <path d="M840 390 H360" class="ret"/>
+  <text x="600" y="384" text-anchor="middle" class="msg">⑤ 200 OK · LPRS envelope（resCode 成功 + data）</text>
+
+  <path d="M360 430 H600" class="hub"/>
+  <text x="480" y="424" text-anchor="middle" class="msg">⑥ Map panel → Publish(EN21,"vehicle",json)</text>
+  <text x="480" y="448" text-anchor="middle" class="note">（同時 Publish "info" 相容舊前端）</text>
+
+  <path d="M600 480 H1080" class="sse"/>
+  <text x="840" y="474" text-anchor="middle" class="msg">⑦ event: vehicle  data: {lpn, entryTime, …}</text>
+
+  <path d="M360 520 H120" class="ret"/>
+  <text x="240" y="514" text-anchor="middle" class="msg">⑧ 200 OK {status:"sent", type:"vehicle", clientKey, lpn}</text>
+
+  <!-- Phase B: clear -->
+  <rect x="40" y="548" width="1200" height="28" rx="4" fill="#fef3c7"/>
+  <text x="52" y="567" class="note">B. 清屏 Clear</text>
+
+  <path d="M120 600 H360" class="call"/>
+  <text x="240" y="594" text-anchor="middle" class="msg">⑨ POST /api/clear/EN21</text>
+
+  <path d="M360 640 H600" class="hub"/>
+  <text x="480" y="634" text-anchor="middle" class="msg">⑩ hub.Clear(EN21) → 清 latest + 推 clear</text>
+
+  <path d="M600 680 H1080" class="sse"/>
+  <text x="840" y="674" text-anchor="middle" class="msg">⑪ event: clear  data: CLEAR_SCREEN</text>
+
+  <path d="M360 720 H120" class="ret"/>
+  <text x="240" y="714" text-anchor="middle" class="msg">⑫ 200 OK {status:"cleared", clientKey}</text>
+
+  <!-- Frontend reaction -->
+  <rect x="900" y="740" width="250" height="70" rx="8" fill="#ecfdf5" stroke="#059669"/>
+  <text x="1025" y="768" text-anchor="middle" class="msg">面板更新車牌／狀態</text>
+  <text x="1025" y="790" text-anchor="middle" class="msg">clear → EMPTY_VEHICLE</text>
+
+  <!-- Keepalive note -->
+  <rect x="40" y="820" width="820" height="56" rx="8" fill="#f1f5f9" stroke="#cbd5e1"/>
+  <text x="56" y="844" class="msg">持續：MessageHub ping loop ≈ 每 20s → event: ping（JSON ts/clientKey/ip）</text>
+  <text x="56" y="864" class="note">別名：/api/plate 與 /api/vehicle 同 Handler；legacy POST /api/message 仍可 Publish info/success</text>
+
+  <!-- Legend strip -->
+  <text x="900" y="844" class="note" fill="#2563eb">── REST</text>
+  <text x="980" y="844" class="note" fill="#059669">── SSE</text>
+  <text x="1050" y="844" class="note" fill="#7c3aed">── Hub</text>
+  <text x="1120" y="844" class="note" fill="#64748b">- - 回應</text>
+</svg>

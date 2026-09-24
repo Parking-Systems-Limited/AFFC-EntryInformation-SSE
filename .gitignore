@@ -1,0 +1,56 @@
+# Build / deps
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/dist-ssr/
+**/.vs/
+**/publish/
+
+# IDE / user
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Local secrets & env
+**/appsettings.*.local.json
+**/appsettings.Local.json
+**/.env.local
+**/.env.*.local
+**/secrets.json
+**/secrets/
+*.pfx
+*.key
+*.pem
+!**/public/**
+
+# Backups
+_bak_*
+*._bak_*
+**/Program.cs._bak_*
+**/*._bak_*
+**/*.bak
+**/*~
+
+# Logs
+**/logs/
+**/Logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Test / coverage / misc
+**/TestResults/
+**/coverage/
+*.nupkg

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>AFFC SSE 系統架構</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; background: #0f172a; color: #e2e8f0; font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif; }
+  header { padding: 16px 24px; border-bottom: 1px solid #334155; background: #1e293b; }
+  h1 { margin: 0; font-size: 18px; font-weight: 700; }
+  p { margin: 6px 0 0; font-size: 13px; color: #94a3b8; }
+  nav a { color: #93c5fd; margin-right: 14px; font-size: 13px; }
+  .wrap { padding: 16px; overflow: auto; }
+  .frame { background: #fff; border-radius: 12px; padding: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+  img, object { width: 100%; height: auto; display: block; }
+</style>
+</head>
+<body>
+<header>
+  <h1>AFFC SSE 系統架構</h1>
+  <p>External/Postman · Backend · MessageHub · LPRS · Frontend EventSource</p>
+  <nav style="margin-top:10px">
+    <a href="architecture.html">架構</a>
+    <a href="sequence-happy.html">Happy Path</a>
+    <a href="reconnect.html">重連</a>
+    <a href="failure-paths.html">失敗路徑</a>
+    <a href="README.md">README</a>
+  </nav>
+</header>
+<div class="wrap"><div class="frame">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 860" width="1280" height="860" role="img" aria-label="AFFC Entry Information SSE Architecture">
+  <defs>
+    <style>
+      .title { font: 700 26px "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif; fill: #0f172a; }
+      .sub { font: 500 14px "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif; fill: #334155; }
+      .box-title { font: 700 15px "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif; fill: #0f172a; }
+      .label { font: 500 12px "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif; fill: #1e293b; }
+      .mono { font: 600 11px ui-monospace, "Cascadia Code", Consolas, monospace; fill: #0f172a; }
+      .mono-sm { font: 500 10px ui-monospace, "Cascadia Code", Consolas, monospace; fill: #334155; }
+      .legend { font: 500 11px "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif; fill: #1e293b; }
+      .arrow-rest { stroke: #2563eb; stroke-width: 2.5; fill: none; marker-end: url(#arrBlue); }
+      .arrow-sse { stroke: #059669; stroke-width: 2.5; fill: none; marker-end: url(#arrGreen); }
+      .arrow-int { stroke: #7c3aed; stroke-width: 2.2; fill: none; marker-end: url(#arrPurple); stroke-dasharray: 6 3; }
+      .arrow-lbl-rest { font: 600 11px "Segoe UI", "Noto Sans TC", sans-serif; fill: #1d4ed8; }
+      .arrow-lbl-sse { font: 600 11px "Segoe UI", "Noto Sans TC", sans-serif; fill: #047857; }
+      .arrow-lbl-int { font: 600 11px "Segoe UI", "Noto Sans TC", sans-serif; fill: #6d28d9; }
+    </style>
+    <marker id="arrBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#059669"/>
+    </marker>
+    <marker id="arrPurple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#7c3aed"/>
+    </marker>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="860" fill="#f8fafc"/>
+  <rect x="24" y="24" width="1232" height="812" rx="16" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+
+  <text x="48" y="64" class="title">AFFC Entry Information — SSE 系統架構</text>
+  <text x="48" y="88" class="sub">clientKey 路由面板 · REST 推送入口 · SSE 長連線推播 · MessageHub 記憶體匯流排</text>
+
+  <!-- Legend -->
+  <g transform="translate(820, 48)">
+    <rect x="0" y="0" width="400" height="52" rx="8" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <line x1="16" y1="18" x2="56" y2="18" class="arrow-rest"/>
+    <text x="64" y="22" class="legend">REST（請求／回應）</text>
+    <line x1="200" y1="18" x2="240" y2="18" class="arrow-sse"/>
+    <text x="248" y="22" class="legend">SSE（長連線推播）</text>
+    <line x1="16" y1="38" x2="56" y2="38" class="arrow-int"/>
+    <text x="64" y="42" class="legend">內部呼叫／記憶體 Publish</text>
+    <text x="248" y="42" class="legend">Ping ≈ 20s</text>
+  </g>
+
+  <!-- External / Postman -->
+  <g filter="url(#shadow)" transform="translate(56, 140)">
+    <rect width="220" height="160" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+    <rect width="220" height="36" rx="12" fill="#2563eb"/>
+    <rect y="24" width="220" height="12" fill="#2563eb"/>
+    <text x="110" y="24" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="Segoe UI, Noto Sans TC, sans-serif">External / Postman</text>
+    <text x="16" y="62" class="label">觸發車輛查詢／清屏</text>
+    <text x="16" y="88" class="mono">POST /api/vehicle</text>
+    <text x="16" y="106" class="mono">POST /api/plate</text>
+    <text x="16" y="124" class="mono">POST /api/clear/{key}</text>
+    <text x="16" y="146" class="mono-sm">{"clientKey":"EN21","lpn":"RH01"}</text>
+  </g>
+
+  <!-- Backend box (large) -->
+  <g filter="url(#shadow)" transform="translate(340, 130)">
+    <rect width="560" height="420" rx="14" fill="#fffbeb" stroke="#d97706" stroke-width="2.5"/>
+    <rect width="560" height="40" rx="14" fill="#d97706"/>
+    <rect y="28" width="560" height="12" fill="#d97706"/>
+    <text x="280" y="26" text-anchor="middle" fill="#fff" font-size="15" font-weight="700" font-family="Segoe UI, Noto Sans TC, sans-serif">Backend · .NET 8 Minimal API · :5100</text>
+
+    <!-- REST endpoints -->
+    <g transform="translate(20, 56)">
+      <rect width="250" height="150" rx="10" fill="#ffffff" stroke="#2563eb" stroke-width="1.8"/>
+      <text x="12" y="22" class="box-title">REST Endpoints</text>
+      <text x="12" y="46" class="mono-sm">POST /api/vehicle | /api/plate</text>
+      <text x="12" y="64" class="mono-sm">POST /api/clear/{clientKey}</text>
+      <text x="12" y="82" class="mono-sm">POST /api/message (legacy)</text>
+      <text x="12" y="100" class="mono-sm">GET  /health</text>
+      <text x="12" y="126" class="label">依 clientKey 決定推播目標面板</text>
+    </g>
+
+    <!-- MessageHub -->
+    <g transform="translate(290, 56)">
+      <rect width="250" height="150" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.8"/>
+      <text x="12" y="22" class="box-title">MessageHub（記憶體）</text>
+      <text x="12" y="46" class="mono-sm">Publish(clientKey, type, text)</text>
+      <text x="12" y="64" class="mono-sm">Clear(clientKey)</text>
+      <text x="12" y="82" class="mono-sm">Subscribe(clientKey) → channel</text>
+      <text x="12" y="100" class="mono-sm">GetLast / ping loop</text>
+      <text x="12" y="126" class="label">key = (clientKey, eventType)</text>
+    </g>
+
+    <!-- SSE endpoint -->
+    <g transform="translate(20, 224)">
+      <rect width="250" height="170" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="1.8"/>
+      <text x="12" y="22" class="box-title">SSE Endpoint</text>
+      <text x="12" y="46" class="mono-sm">GET /sse/{clientKey}</text>
+      <text x="12" y="68" class="label">Content-Type: text/event-stream</text>
+      <text x="12" y="90" class="label">Replay latest → Subscribe</text>
+      <text x="12" y="112" class="label">事件：vehicle / info / clear</text>
+      <text x="12" y="130" class="label">　　　error / ping（keepalive）</text>
+      <text x="12" y="152" class="mono-sm">Sse:PingIntervalSeconds = 20</text>
+    </g>
+
+    <!-- LPRS client -->
+    <g transform="translate(290, 224)">
+      <rect width="250" height="170" rx="10" fill="#ffffff" stroke="#dc2626" stroke-width="1.8"/>
+      <text x="12" y="22" class="box-title">LPRS HttpClient</text>
+      <text x="12" y="46" class="mono-sm">GET …/Vehicle/{lpn}</text>
+      <text x="12" y="64" class="mono-sm">Header: x-api-key</text>
+      <text x="12" y="86" class="label">Map → VehiclePanelMapper</text>
+      <text x="12" y="108" class="label">成功：Publish vehicle + info</text>
+      <text x="12" y="130" class="label">失敗：Publish error（無假資料）</text>
+      <text x="12" y="152" class="mono-sm">Timeout 15s · IgnoreSsl</text>
+    </g>
+  </g>
+
+  <!-- LPRS external system -->
+  <g filter="url(#shadow)" transform="translate(960, 200)">
+    <rect width="240" height="180" rx="12" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+    <rect width="240" height="36" rx="12" fill="#dc2626"/>
+    <rect y="24" width="240" height="12" fill="#dc2626"/>
+    <text x="120" y="24" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="Segoe UI, Noto Sans TC, sans-serif">LPRS API</text>
+    <text x="16" y="62" class="label">192.168.103.59:8012</text>
+    <text x="16" y="88" class="mono-sm">GET /api/LprsEvents/</text>
+    <text x="16" y="106" class="mono-sm">    Vehicle/{lpn}</text>
+    <text x="16" y="132" class="label">業務碼 e.g. 997 → error</text>
+    <text x="16" y="154" class="label">EntryImage 路徑可選</text>
+  </g>
+
+  <!-- Frontend -->
+  <g filter="url(#shadow)" transform="translate(340, 590)">
+    <rect width="560" height="200" rx="14" fill="#ecfdf5" stroke="#059669" stroke-width="2.5"/>
+    <rect width="560" height="40" rx="14" fill="#059669"/>
+    <rect y="28" width="560" height="12" fill="#059669"/>
+    <text x="280" y="26" text-anchor="middle" fill="#fff" font-size="15" font-weight="700" font-family="Segoe UI, Noto Sans TC, sans-serif">Frontend · Vite React + TS · EventSource</text>
+
+    <g transform="translate(20, 56)">
+      <rect width="250" height="124" rx="10" fill="#ffffff" stroke="#059669" stroke-width="1.5"/>
+      <text x="12" y="22" class="box-title">連線</text>
+      <text x="12" y="46" class="mono-sm">EventSource(`/sse/{clientKey}`)</text>
+      <text x="12" y="68" class="label">clientKey = ?clientKey= 或 EN21</text>
+      <text x="12" y="90" class="label">監聽：vehicle / info / clear</text>
+      <text x="12" y="108" class="label">　　　error / ping / message</text>
+    </g>
+
+    <g transform="translate(290, 56)">
+      <rect width="250" height="124" rx="10" fill="#ffffff" stroke="#0f766e" stroke-width="1.5"/>
+      <text x="12" y="22" class="box-title">穩定性 UI</text>
+      <text x="12" y="46" class="label">connecting / open</text>
+      <text x="12" y="66" class="label">reconnecting / offline</text>
+      <text x="12" y="90" class="label">backoff · watchdog 90s</text>
+      <text x="12" y="110" class="label">visibility → force reconnect</text>
+    </g>
+  </g>
+
+  <!-- clientKey callout -->
+  <g filter="url(#shadow)" transform="translate(56, 360)">
+    <rect width="220" height="200" rx="12" fill="#fefce8" stroke="#ca8a04" stroke-width="2"/>
+    <text x="110" y="28" text-anchor="middle" class="box-title">clientKey 角色</text>
+    <text x="16" y="56" class="label">面板／Kiosk 識別碼</text>
+    <text x="16" y="80" class="mono">例：EN21</text>
+    <text x="16" y="106" class="label">REST body 指定目標</text>
+    <text x="16" y="128" class="label">SSE path 訂閱同一 key</text>
+    <text x="16" y="150" class="label">Hub 以 key 隔離頻道</text>
+    <text x="16" y="178" class="mono-sm">EN* → entrance 面板邏輯</text>
+  </g>
+
+  <!-- Arrows: Postman -> Backend REST -->
+  <path d="M276 200 H340" class="arrow-rest"/>
+  <text x="288" y="192" class="arrow-lbl-rest">REST</text>
+
+  <!-- Backend LPRS client -> LPRS -->
+  <path d="M900 340 H960" class="arrow-rest"/>
+  <text x="905" y="332" class="arrow-lbl-rest">GET + x-api-key</text>
+
+  <!-- Internal REST -> Hub (conceptual) -->
+  <path d="M480 236 H560" class="arrow-int"/>
+  <text x="500" y="228" class="arrow-lbl-int">Publish</text>
+
+  <!-- Hub -> SSE -->
+  <path d="M415 356 V380" class="arrow-int"/>
+  <text x="422" y="372" class="arrow-lbl-int">Subscribe</text>
+
+  <!-- SSE -> Frontend -->
+  <path d="M465 550 V590" class="arrow-sse"/>
+  <text x="472" y="575" class="arrow-lbl-sse">SSE push</text>
+
+  <!-- Frontend EventSource up -->
+  <path d="M620 590 V550" class="arrow-sse"/>
+  <text x="628" y="575" class="arrow-lbl-sse">GET /sse/EN21</text>
+
+  <!-- Footer note -->
+  <text x="56" y="820" class="sub">SSE ≠ REST：REST 短請求觸發查詢／清屏；SSE 為面板長連線，由 MessageHub 依 clientKey 推播事件。</text>
+</svg>
+
+</div></div>
+</body>
+</html>
